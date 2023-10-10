@@ -142,7 +142,7 @@ import * as maptilersdk from '@maptiler/sdk';
               trackUserLocation: true
           }), "bottom-right"
       );
-          
+          console.log()
 
     map.current.addControl(
       new maplibregl.NavigationControl(), "bottom-right");
