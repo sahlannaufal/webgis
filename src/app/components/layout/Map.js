@@ -4,7 +4,6 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './map.css';
 import "@maptiler/sdk/dist/maptiler-sdk.css";
-import * as maptilersdk from '@maptiler/sdk';
 
 
  function Map({clickedButtonId, activeLayer}) {
@@ -14,8 +13,7 @@ import * as maptilersdk from '@maptiler/sdk';
   const [lat] = useState(-6.40108);
   const [zoom] = useState(14);
   const [API_KEY] = useState('npXcGxdghNnPva1tMhQW');
-  const initialStyle = "streets-v2";
-  const layers = {};
+  const initialStyle = "hybrid";
 
   console.log(activeLayer);
 
@@ -47,14 +45,6 @@ import * as maptilersdk from '@maptiler/sdk';
   ];
 
 
-    const newBasemap = basemaps.find((basemap) => basemap.id === clickedButtonId);
-
-    if (newBasemap && map.current) {
-      map.current.setStyle(newBasemap.style);
-    }
-
-    
-
 
   useEffect(() => {
     console.log('activeLayer dalam komponen Map:', activeLayer);
@@ -72,7 +62,102 @@ import * as maptilersdk from '@maptiler/sdk';
 
     map.current.on('load', function() {
 
+    // Tambahkan sumber dan lapisan saat peta dimuat
+    addMapLayersAndSources();
+  
 
+    const popup = new maplibregl.Popup({closeOnClick: false})
+        popup.setLngLat([106.8272291, -6.175392])
+        popup.setHTML('<h1>Ini Monas!</h1>')
+        popup.addTo(map.current);
+
+        map.current.addControl(
+          new maplibregl.GeolocateControl({
+              positionOptions: {
+                  enableHighAccuracy: true
+              },
+              trackUserLocation: true
+          }), "bottom-right"
+      );
+
+    map.current.addControl(
+      new maplibregl.NavigationControl(), "bottom-right");
+
+});
+  
+
+
+  }, [API_KEY, lng, lat, zoom]);
+
+
+  useEffect(() => {
+    if (map.current) {
+      if (clickedButtonId) {
+        // Hapus sumber dan lapisan yang ada
+        removeMapLayersAndSources();
+  
+        const newBasemap = basemaps.find((basemap) => basemap.id === clickedButtonId);
+  
+        if (newBasemap) {
+          // Set the new basemap style
+          map.current.setStyle(newBasemap.style);
+        }
+  
+        // Tambahkan kembali sumber dan lapisan
+        addMapLayersAndSources();
+        console.log(map.current.getLayer('testing'));
+      }
+    }
+  }, [clickedButtonId]);
+
+
+
+  // useEffect(() => {
+  //   if (map.current && (activeLayer === 'testing' || activeLayer === 'BANGUNAN_AR_25K')) {
+  //     console.log(`yang ditekan ${activeLayer}`)
+  //     const currentVisibility = map.current.getLayoutProperty(activeLayer, 'visibility');
+  //     map.current.setLayoutProperty(activeLayer, 'visibility', currentVisibility === 'visible' ? 'none' : 'visible');
+  //   }
+  // }, [activeLayer]);
+
+
+  useEffect(() => {
+    if (map.current) {
+      if (activeLayer === 'testing') {
+        if (map.current.getLayer('testing') === undefined){
+        addMapLayersAndSources();
+        } 
+        console.log(`Yang ditekan ${activeLayer}`);
+        console.log(map.current.getLayer('testing'))
+        // Untuk lapisan 'testing'
+        const testingLayer = map.current.getLayer('testing');
+        console.log(`${testingLayer}`)
+        if (testingLayer) {
+          console.log(`masuk ditekan${activeLayer}`)
+          const currentTestingVisibility = map.current.getLayoutProperty('testing', 'visibility');
+          map.current.setLayoutProperty('testing', 'visibility', currentTestingVisibility === 'visible' ? 'none' : 'visible');
+        }
+      }
+  
+      if (activeLayer === 'BANGUNAN_AR_25K') {
+        console.log(`Yang ditekan ${activeLayer}`);
+        
+        // Untuk lapisan 'BANGUNAN_AR_25K'
+        const bangunanLayer = map.current.getLayer('BANGUNAN_AR_25K');
+        if (bangunanLayer) {
+          console.log(`masuk ditekan${activeLayer}`)
+          const currentBangunanVisibility = map.current.getLayoutProperty('BANGUNAN_AR_25K', 'visibility');
+          map.current.setLayoutProperty('BANGUNAN_AR_25K', 'visibility', currentBangunanVisibility === 'visible' ? 'none' : 'visible');
+        }
+      }
+    }
+  }, [activeLayer]);
+
+
+  const addMapLayersAndSources = () => {
+    console.log("sebelum add");
+    console.log(map.current.getStyle().layers)
+    // if (!map.current.getLayer('testing')) {
       map.current.addSource('magang', {
         type: 'raster',
         tiles: [
@@ -89,9 +174,13 @@ import * as maptilersdk from '@maptiler/sdk';
         layout: {
           visibility: 'none' // Set visibilitas awal menjadi 'none'
         }
+        
       });
-
-
+      console.log("setelah add");
+    console.log(map.current.getStyle().layers)
+    // }
+  
+    if (!map.current.getLayer('BANGUNAN_AR_25K')) {
       map.current.addSource('magang1', {
         type: 'raster',
         tiles: [
@@ -109,58 +198,25 @@ import * as maptilersdk from '@maptiler/sdk';
           visibility: 'none' // Set visibilitas awal menjadi 'none'
         }
       });
-
-    map.current.addSource('wms-test-source', {
-      'type': 'raster',
-      // use the tiles option to specify a WMS tile source URL
-      // https://maplibre.org/maplibre-style-spec/sources/
-      'tiles': [
-          'http://103.6.53.254:11190/geoserver/ptm/wms?service=WMS&version=1.1.0&request=GetMap&layers=ptm%3Amalang&bbox=112.6443325%2C-8.1542762E7%2C1.127444649E9%2C-8.0&width=768&height=330&srs=EPSG%3A4326&styles=&format=application/openlayers'
-      ],
-      'tileSize': 256
-    })
-      map.current.addLayer(
-        {
-            'id': 'wms-test-layer',
-            'type': 'raster',
-            'source': 'wms-test-source',
-            'paint': {}
-        },    
-    );
-    'aeroway_fill'
-
-    const popup = new maplibregl.Popup({closeOnClick: false})
-        popup.setLngLat([106.8272291, -6.175392])
-        popup.setHTML('<h1>Ini Monas!</h1>')
-        popup.addTo(map.current);
-
-        map.current.addControl(
-          new maplibregl.GeolocateControl({
-              positionOptions: {
-                  enableHighAccuracy: true
-              },
-              trackUserLocation: true
-          }), "bottom-right"
-      );
-          console.log()
-
-    map.current.addControl(
-      new maplibregl.NavigationControl(), "bottom-right");
-
-});
-  
-
-
-  }, [API_KEY, lng, lat, zoom]);
-
-
-  useEffect(() => {
-    if (map.current && (activeLayer === 'testing' || activeLayer === 'BANGUNAN_AR_25K')) {
-      console.log(`yang ditekan ${activeLayer}`)
-      const currentVisibility = map.current.getLayoutProperty(activeLayer, 'visibility');
-      map.current.setLayoutProperty(activeLayer, 'visibility', currentVisibility === 'visible' ? 'none' : 'visible');
     }
-  }, [activeLayer]);
+    }
+
+  const removeMapLayersAndSources = () => {
+    console.log("remove")
+    if (map.current.getLayer('testing')) {
+      map.current.removeLayer('testing');
+    }
+    if (map.current.getSource('magang')) {
+      map.current.removeSource('magang');
+    }
+  
+    if (map.current.getLayer('BANGUNAN_AR_25K')) {
+      map.current.removeLayer('BANGUNAN_AR_25K');
+    }
+    if (map.current.getSource('magang1')) {
+      map.current.removeSource('magang1');
+    }
+  };
 
   return (
     <div className="map-wrap">

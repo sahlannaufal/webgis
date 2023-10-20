@@ -12,7 +12,7 @@ import Map from './Map';
 
 function Sidebar2( ) {
 
-  const [clickedButtonId, setClickedButtonId] = useState('streets-v2');
+  const [clickedButtonId, setClickedButtonId] = useState(null);
 
   const [activeLayer, setActiveLayer] = useState(null);
   const handleLayerToggle = (layerName) => {
